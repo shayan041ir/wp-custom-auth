@@ -1,0 +1,66 @@
+# Persian translation for WP Custom Auth
+# Copyright (C) 2026
+msgid ""
+msgstr ""
+"Project-Id-Version: WP Custom Auth 1.0.0\n"
+"POT-Creation-Date: 2026-05-10\n"
+"PO-Revision-Date: 2026-05-10\n"
+"Language: fa_IR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "ورود به حساب"
+msgstr "ورود به حساب"
+
+msgid "نام کاربری یا ایمیل"
+msgstr "نام کاربری یا ایمیل"
+
+msgid "رمز عبور"
+msgstr "رمز عبور"
+
+msgid "مرا به خاطر بسپار"
+msgstr "مرا به خاطر بسپار"
+
+msgid "ورود"
+msgstr "ورود"
+
+msgid "حساب ندارید؟"
+msgstr "حساب ندارید؟"
+
+msgid "ثبت‌نام کنید"
+msgstr "ثبت‌نام کنید"
+
+msgid "ایجاد حساب کاربری"
+msgstr "ایجاد حساب کاربری"
+
+msgid "نام کاربری"
+msgstr "نام کاربری"
+
+msgid "ایمیل"
+msgstr "ایمیل"
+
+msgid "تکرار رمز عبور"
+msgstr "تکرار رمز عبور"
+
+msgid "ثبت‌نام"
+msgstr "ثبت‌نام"
+
+msgid "حساب دارید؟"
+msgstr "حساب دارید؟"
+
+msgid "وارد شوید"
+msgstr "وارد شوید"
+
+msgid "ورود موفق! در حال انتقال..."
+msgstr "ورود موفق! در حال انتقال..."
+
+msgid "ثبت‌نام موفق! در حال انتقال..."
+msgstr "ثبت‌نام موفق! در حال انتقال..."
+
+msgid "نام کاربری یا رمز عبور اشتباه است."
+msgstr "نام کاربری یا رمز عبور اشتباه است."
+
+msgid "ثبت‌نام در این سایت غیرفعال است."
+msgstr "ثبت‌نام در این سایت غیرفعال است."

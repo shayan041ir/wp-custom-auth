@@ -4,101 +4,79 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class WCA_Auth_Handler {
-
-    /**
-     * پردازش ورود کاربر
-     */
-    public static function handle_login() {
+    
+    public function __construct() {
+        add_action( 'wp_ajax_wca_login', [ $this, 'handle_login' ] );
+        add_action( 'wp_ajax_nopriv_wca_login', [ $this, 'handle_login' ] );
+        
+        add_action( 'wp_ajax_wca_register', [ $this, 'handle_register' ] );
+        add_action( 'wp_ajax_nopriv_wca_register', [ $this, 'handle_register' ] );
+    }
+    
+    public function handle_login() {
         check_ajax_referer( 'wca_nonce', 'nonce' );
-
-        $username = isset( $_POST['username'] ) ? sanitize_text_field( wp_unslash( $_POST['username'] ) ) : '';
-        $password = isset( $_POST['password'] ) ? $_POST['password'] : '';
-        $remember = isset( $_POST['remember'] ) && $_POST['remember'] === 'true';
-
-        $errors = WCA_Form_Validator::validate_login( $username, $password );
-
-        if ( ! empty( $errors ) ) {
-            wp_send_json_error( [ 'messages' => $errors ] );
+        
+        $username = sanitize_user( $_POST['username'] ?? '' );
+        $password = $_POST['password'] ?? '';
+        $remember = isset( $_POST['remember'] );
+        
+        if ( empty( $username ) || empty( $password ) ) {
+            wp_send_json_error( ['message' => __( 'لطفاً نام کاربری و رمز عبور را وارد کنید.', 'wp-custom-auth' )] );
         }
-
-        // پشتیبانی از ورود با ایمیل یا نام کاربری
-        if ( is_email( $username ) ) {
-            $user = get_user_by( 'email', $username );
-            if ( $user ) {
-                $username = $user->user_login;
-            }
-        }
-
-        $credentials = [
+        
+        $creds = [
             'user_login'    => $username,
             'user_password' => $password,
-            'remember'      => $remember,
+            'remember'      => $remember
         ];
-
-        $user = wp_signon( $credentials, is_ssl() );
-
+        
+        $user = wp_signon( $creds, is_ssl() );
+        
         if ( is_wp_error( $user ) ) {
-            wp_send_json_error( [
-                'messages' => [ __( 'نام کاربری یا رمز عبور اشتباه است.', 'wp-custom-auth' ) ],
-            ]);
+            wp_send_json_error( ['message' => __( 'نام کاربری یا رمز عبور اشتباه است.', 'wp-custom-auth' )] );
         }
-
+        
+        $redirect = apply_filters( 'wca_login_redirect', home_url(), $user->ID );
+        
         wp_send_json_success( [
-            'message'  => __( 'ورود موفق! در حال انتقال...', 'wp-custom-auth' ),
-            'redirect' => apply_filters( 'wca_login_redirect', home_url(), $user ),
+            'message' => __( 'ورود موفقیت‌آمیز بود!', 'wp-custom-auth' ),
+            'redirect' => $redirect
         ]);
     }
-
-    /**
-     * پردازش ثبت‌نام کاربر
-     */
-    public static function handle_register() {
+    
+    public function handle_register() {
         check_ajax_referer( 'wca_nonce', 'nonce' );
-
-        if ( ! get_option( 'users_can_register' ) ) {
-            wp_send_json_error( [
-                'messages' => [ __( 'ثبت‌نام در این سایت غیرفعال است.', 'wp-custom-auth' ) ],
-            ]);
+        
+        $email = sanitize_email( $_POST['email'] ?? '' );
+        $password = $_POST['password'] ?? '';
+        $username = sanitize_user( $_POST['username'] ?? '' );
+        
+        if ( empty( $email ) || empty( $password ) || empty( $username ) ) {
+            wp_send_json_error( ['message' => __( 'لطفاً تمام فیلدها را پر کنید.', 'wp-custom-auth' )] );
         }
-
-        $username  = isset( $_POST['username'] )  ? sanitize_user( wp_unslash( $_POST['username'] ) )        : '';
-        $email     = isset( $_POST['email'] )     ? sanitize_email( wp_unslash( $_POST['email'] ) )           : '';
-        $password  = isset( $_POST['password'] )  ? $_POST['password']                                        : '';
-        $password2 = isset( $_POST['password2'] ) ? $_POST['password2']                                       : '';
-
-        $errors = WCA_Form_Validator::validate_register( $username, $email, $password, $password2 );
-
-        if ( ! empty( $errors ) ) {
-            wp_send_json_error( [ 'messages' => $errors ] );
+        
+        if ( username_exists( $username ) || email_exists( $email ) ) {
+            wp_send_json_error( ['message' => __( 'نام کاربری یا ایمیل قبلاً ثبت شده است.', 'wp-custom-auth' )] );
         }
-
+        
         $user_id = wp_create_user( $username, $password, $email );
-
+        
         if ( is_wp_error( $user_id ) ) {
-            wp_send_json_error( [
-                'messages' => [ $user_id->get_error_message() ],
-            ]);
+            wp_send_json_error( ['message' => $user_id->get_error_message()] );
         }
-
-        // ارسال ایمیل خوش‌آمدگویی
-        WCA_Mailer::send_welcome_email( $user_id );
-
-        // ورود خودکار بعد از ثبت‌نام
+        
         wp_set_current_user( $user_id );
         wp_set_auth_cookie( $user_id );
-
+        
+        WCA_Mailer::send_welcome_email( $user_id );
+        
+        $redirect = apply_filters( 'wca_register_redirect', home_url(), $user_id );
+        
         wp_send_json_success( [
-            'message'  => __( 'ثبت‌نام موفق! در حال انتقال...', 'wp-custom-auth' ),
-            'redirect' => apply_filters( 'wca_register_redirect', home_url(), $user_id ),
+            'message' => __( 'ثبت‌نام با موفقیت انجام شد!', 'wp-custom-auth' ),
+            'redirect' => $redirect
         ]);
     }
-
-    /**
-     * پردازش خروج کاربر
-     */
-    public static function handle_logout() {
-        check_ajax_referer( 'wca_nonce', 'nonce' );
-        wp_logout();
-        wp_send_json_success( [ 'redirect' => home_url() ] );
-    }
 }
+
+new WCA_Auth_Handler();

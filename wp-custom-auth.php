@@ -1,106 +1,85 @@
 <?php
 /**
- * Plugin Name: WP Custom Auth
- * Plugin URI:  https://zaraskinclinic.com
- * Description: پلاگین ورود و ثبت‌نام سفارشی با ایمیل، نام کاربری و رمز عبور
- * Version:     1.0.0
- * Author:      shayan rezayi
+ * Plugin Name: WP Custom Auth with Music Preferences
+ * Description: سیستم ورود و ثبت‌نام چند مرحله‌ای با انتخاب سلیقه موسیقی
+ * Version: 2.0
+ * Author: Your Name
  * Text Domain: wp-custom-auth
- * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'WCA_VERSION',     '1.0.0' );
-define( 'WCA_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
-define( 'WCA_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
-define( 'WCA_PLUGIN_FILE', __FILE__ );
+define( 'WCA_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'WCA_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
+// بارگذاری کلاس‌ها
+require_once WCA_PLUGIN_DIR . 'includes/class-auth-handler.php';
 require_once WCA_PLUGIN_DIR . 'includes/class-form-validator.php';
 require_once WCA_PLUGIN_DIR . 'includes/class-mailer.php';
-require_once WCA_PLUGIN_DIR . 'includes/class-auth-handler.php';
+require_once WCA_PLUGIN_DIR . 'includes/class-music-preferences.php';
+require_once WCA_PLUGIN_DIR . 'includes/class-admin-preferences.php';
 
-class WP_Custom_Auth {
-
-    private static $instance = null;
-
-    public static function get_instance() {
-        if ( null === self::$instance ) {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }
-
-    private function __construct() {
-        add_action( 'init',                  [ $this, 'load_textdomain' ] );
-        add_action( 'wp_enqueue_scripts',    [ $this, 'enqueue_assets' ] );
-        add_shortcode( 'wca_login',          [ $this, 'render_login' ] );
-        add_shortcode( 'wca_register',       [ $this, 'render_register' ] );
-        add_action( 'wp_ajax_nopriv_wca_login',    [ 'WCA_Auth_Handler', 'handle_login' ] );
-        add_action( 'wp_ajax_nopriv_wca_register', [ 'WCA_Auth_Handler', 'handle_register' ] );
-        add_action( 'wp_ajax_wca_logout',          [ 'WCA_Auth_Handler', 'handle_logout' ] );
-        register_activation_hook( WCA_PLUGIN_FILE, [ $this, 'activate' ] );
-        register_deactivation_hook( WCA_PLUGIN_FILE, [ $this, 'deactivate' ] );
-    }
-
-    public function load_textdomain() {
-        load_plugin_textdomain(
-            'wp-custom-auth',
-            false,
-            dirname( plugin_basename( WCA_PLUGIN_FILE ) ) . '/languages'
-        );
-    }
-
-    public function enqueue_assets() {
-        wp_enqueue_style(
-            'wca-style',
-            WCA_PLUGIN_URL . 'assets/css/auth-style.css',
-            [],
-            WCA_VERSION
-        );
-        wp_enqueue_script(
-            'wca-script',
-            WCA_PLUGIN_URL . 'assets/js/auth-script.js',
-            [ 'jquery' ],
-            WCA_VERSION,
-            true
-        );
-        wp_localize_script( 'wca-script', 'wca_ajax', [
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce'    => wp_create_nonce( 'wca_nonce' ),
-        ]);
-    }
-
-    public function render_login() {
-        if ( is_user_logged_in() ) {
-            return '<p>' . sprintf(
-                __( 'شما وارد شده‌اید. <a href="%s">خروج</a>', 'wp-custom-auth' ),
-                wp_logout_url( home_url() )
-            ) . '</p>';
-        }
-        ob_start();
-        include WCA_PLUGIN_DIR . 'templates/login-form.php';
-        return ob_get_clean();
-    }
-
-    public function render_register() {
-        if ( is_user_logged_in() ) {
-            return '<p>' . __( 'شما قبلاً ثبت‌نام کرده‌اید.', 'wp-custom-auth' ) . '</p>';
-        }
-        ob_start();
-        include WCA_PLUGIN_DIR . 'templates/register-form.php';
-        return ob_get_clean();
-    }
-
-    public function activate() {
-        flush_rewrite_rules();
-    }
-
-    public function deactivate() {
-        flush_rewrite_rules();
-    }
+// بارگذاری استایل‌ها و اسکریپت‌ها
+function wca_enqueue_assets() {
+    wp_enqueue_style( 'wca-auth-style', WCA_PLUGIN_URL . 'assets/css/auth-style.css', [], '2.0' );
+    wp_enqueue_style( 'wca-music-style', WCA_PLUGIN_URL . 'assets/css/music-preferences.css', [], '2.0' );
+    
+    wp_enqueue_script( 'wca-auth-script', WCA_PLUGIN_URL . 'assets/js/auth-script.js', ['jquery'], '2.0', true );
+    wp_enqueue_script( 'wca-music-script', WCA_PLUGIN_URL . 'assets/js/music-preferences.js', ['jquery'], '2.0', true );
+    
+    wp_localize_script( 'wca-auth-script', 'wcaAjax', [
+        'ajaxurl' => admin_url( 'admin-ajax.php' ),
+        'nonce'   => wp_create_nonce( 'wca_nonce' )
+    ]);
 }
+add_action( 'wp_enqueue_scripts', 'wca_enqueue_assets' );
 
-WP_Custom_Auth::get_instance();
+// شورت‌کد فرم چند مرحله‌ای
+function wca_multi_step_register_shortcode() {
+    ob_start();
+    ?>
+    <div class="wca-multi-step-container">
+        <div class="wca-progress-bar">
+            <div class="wca-progress-step active" data-step="1">1</div>
+            <div class="wca-progress-step" data-step="2">2</div>
+            <div class="wca-progress-step" data-step="3">3</div>
+        </div>
+        
+        <div class="wca-step-content">
+            <div class="wca-step wca-step-1 active">
+                <?php include WCA_PLUGIN_DIR . 'templates/user-type-form.php'; ?>
+            </div>
+            <div class="wca-step wca-step-2">
+                <?php include WCA_PLUGIN_DIR . 'templates/essential-info-form.php'; ?>
+            </div>
+            <div class="wca-step wca-step-3">
+                <?php include WCA_PLUGIN_DIR . 'templates/music-preferences-form.php'; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode( 'wca_register_multi', 'wca_multi_step_register_shortcode' );
+
+// شورت‌کد ورود (قبلی)
+function wca_login_shortcode() {
+    ob_start();
+    include WCA_PLUGIN_DIR . 'templates/login-form.php';
+    return ob_get_clean();
+}
+add_shortcode( 'wca_login', 'wca_login_shortcode' );
+
+// فعال‌سازی پلاگین
+function wca_activate() {
+    WCA_Music_Preferences::create_table();
+}
+register_activation_hook( __FILE__, 'wca_activate' );
+
+// بین‌المللی‌سازی
+function wca_load_textdomain() {
+    load_plugin_textdomain( 'wp-custom-auth', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}
+add_action( 'plugins_loaded', 'wca_load_textdomain' );

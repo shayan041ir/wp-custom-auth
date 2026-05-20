@@ -21,8 +21,9 @@
                 <span class="wca-type-title">Business</span>
                 <span class="wca-type-desc">For cafés, studios, venues, and workspaces.</span>
             </button>
+            
+            <button type="button" class="wca-btn-back"><?php _e( 'Back', 'wp-custom-auth' ); ?></button>
         </div>
         
-        <button type="button" class="wca-btn-back"><?php _e( 'Back', 'wp-custom-auth' ); ?></button>
     </div>
 </div>

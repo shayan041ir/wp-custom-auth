@@ -41,11 +41,11 @@ function wca_multi_step_register_shortcode() {
     ob_start();
     ?>
     <div class="wca-multi-step-container">
-        <div class="wca-progress-bar">
+        <!-- <div class="wca-progress-bar">
             <div class="wca-progress-step active" data-step="1">1</div>
             <div class="wca-progress-step" data-step="2">2</div>
             <div class="wca-progress-step" data-step="3">3</div>
-        </div>
+        </div> -->
         
         <div class="wca-step-content">
             <div class="wca-step wca-step-1 active">
